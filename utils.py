@@ -18,6 +18,15 @@ from itertools import combinations
 
 from dataset import AugmentedDataset
 
+feature_dims = {
+    'renset18': 512,
+    'resnet50': 2048
+}
+
+dataset_num_classes = {
+    'cifar100': 100,
+}
+
 
 def get_network(args, num_classes=100):
     """ return given network
@@ -165,6 +174,11 @@ def get_network(args, num_classes=100):
 
     return net
 
+def get_clf(args):
+    feature_dim = feature_dims[args.net]
+    clf = nn.Linear(feature_dim)
+    
+
 def get_all_tf_combs(mean, std):
     """ return all possible tf combinations
     Args:
@@ -184,7 +198,7 @@ def get_all_tf_combs(mean, std):
         ]
     
     # getting all possible 1-n combinations of transformations
-    all_tf_combs = []
+    all_tf_combs = [tuple()]
     for i in range(len(flexible_tf)):
         combs = list(combinations(flexible_tf, i))
         all_tf_combs += combs

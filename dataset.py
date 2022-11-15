@@ -30,14 +30,14 @@ class AugmentedDataset(Dataset):
         self.num_transform = len(self.transform_list)
 
     def __getitem__(self, idx):
-        img, _ = self.dataset[idx]
+        img, true_label = self.dataset[idx]
         
         if self.transform_list:
-            label = np.random.randint(0, self.num_transform, 1)[0]
-            transform = self.transform_list[label]
+            aug_label = np.random.randint(0, self.num_transform, 1)[0]
+            transform = self.transform_list[aug_label]
             img = transform(img)
         
-        return img, label
+        return img, true_label, aug_label
     
     def __len__(self):
         return len(self.dataset)
