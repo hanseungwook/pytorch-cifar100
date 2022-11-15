@@ -191,7 +191,7 @@ def get_all_tf_combs(mean, std):
     
     # adding in default transformations
     for j in range(len(all_tf_combs)):
-        all_tf_combs[j] = all_tf_combs[j] + tuple(default_tf)   
+        all_tf_combs[j] = transforms.Compose(all_tf_combs[j] + tuple(default_tf))
 
     return all_tf_combs
 
