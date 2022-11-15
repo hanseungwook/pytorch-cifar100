@@ -160,7 +160,7 @@ def resnet101(**kwargs):
 def resnet152(**kwargs):
     """ return a ResNet 152 object
     """
-    return ResNet(BottleNeck, [3, 8, 36, 3], kwargs)
+    return ResNet(BottleNeck, [3, 8, 36, 3], **kwargs)
 
 
 
