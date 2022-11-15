@@ -106,6 +106,7 @@ def eval_training(epoch=0, tb=True):
         _, preds = outputs.max(1)
         correct += preds.eq(aug_labels).sum()
 
+        test_loss_online += loss_online.item()
         _, preds_online = outputs_online.max(1)
         correct_online += preds_online.eq(true_labels).sum()
 

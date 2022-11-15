@@ -173,10 +173,6 @@ def get_network(args, num_classes=100, online_num_classes=100):
         net = net.cuda()
 
     return net
-
-def get_clf(args):
-    feature_dim = feature_dims[args.net]
-    clf = nn.Linear(feature_dim)
     
 
 def get_all_tf_combs(mean, std, max_num_comb=-1):
@@ -194,7 +190,6 @@ def get_all_tf_combs(mean, std, max_num_comb=-1):
         transforms.RandomRotation(90),
         transforms.RandomInvert(p=1.0),
         transforms.GaussianBlur(3, sigma=(0.1, 2.0))
-
         ]
     default_tf = [
         transforms.ToTensor(),
