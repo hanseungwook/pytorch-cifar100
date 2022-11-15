@@ -39,6 +39,9 @@ class AugmentedDataset(Dataset):
         
         return img, label
     
+    def __len__(self):
+        return len(self.dataset)
+    
 
 class CIFAR100Train(Dataset):
     """cifar100 test dataset, derived from
