@@ -33,7 +33,7 @@ class AugmentedDataset(Dataset):
         img, _ = self.dataset[idx]
         
         if self.transform_list:
-            label = np.random.randint(0, self.num_transform, 1)
+            label = np.random.randint(0, self.num_transform, 1)[0]
             transform = self.transform_list[label]
             img = transform(img)
         
