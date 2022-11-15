@@ -179,7 +179,7 @@ def get_clf(args):
     clf = nn.Linear(feature_dim)
     
 
-def get_all_tf_combs(mean, std):
+def get_all_tf_combs(mean, std, max_num_comb=-1):
     """ return all possible tf combinations
     Args:
         mean: mean of training dataset
@@ -189,8 +189,12 @@ def get_all_tf_combs(mean, std):
 
     flexible_tf = [
         transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15)
+        transforms.RandomHorizontalFlip(p=1.0),
+        transforms.RandomVerticalFlip(p=1.0),
+        transforms.RandomRotation(90),
+        transforms.RandomInvert(p=1.0),
+        transforms.GaussianBlur(3, sigma=(0.1, 2.0))
+
         ]
     default_tf = [
         transforms.ToTensor(),
@@ -198,8 +202,11 @@ def get_all_tf_combs(mean, std):
         ]
     
     # getting all possible 1-n combinations of transformations
-    all_tf_combs = [tuple()]
-    for i in range(len(flexible_tf)):
+    all_tf_combs = []
+    if max_num_comb == -1:
+        max_num_comb = len(flexible_tf)
+    
+    for i in range(max_num_comb+1):
         combs = list(combinations(flexible_tf, i))
         all_tf_combs += combs
     
