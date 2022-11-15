@@ -28,7 +28,7 @@ dataset_num_classes = {
 }
 
 
-def get_network(args, num_classes=100):
+def get_network(args, num_classes=100, online_num_classes=100):
     """ return given network
     """
 
@@ -73,19 +73,19 @@ def get_network(args, num_classes=100):
         net = xception()
     elif args.net == 'resnet18':
         from models.resnet import resnet18
-        net = resnet18(num_classes=num_classes)
+        net = resnet18(num_classes=num_classes, online_num_classes=online_num_classes)
     elif args.net == 'resnet34':
         from models.resnet import resnet34
-        net = resnet34(num_classes=num_classes)
+        net = resnet34(num_classes=num_classes, online_num_classes=online_num_classes)
     elif args.net == 'resnet50':
         from models.resnet import resnet50
-        net = resnet50(num_classes=num_classes)
+        net = resnet50(num_classes=num_classes, online_num_classes=online_num_classes)
     elif args.net == 'resnet101':
         from models.resnet import resnet101
-        net = resnet101(num_classes=num_classes)
+        net = resnet101(num_classes=num_classes, online_num_classes=online_num_classes)
     elif args.net == 'resnet152':
         from models.resnet import resnet152
-        net = resnet152(num_classes=num_classes)
+        net = resnet152(num_classes=num_classes, online_num_classes=online_num_classes)
     elif args.net == 'preactresnet18':
         from models.preactresnet import preactresnet18
         net = preactresnet18()

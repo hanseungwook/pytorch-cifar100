@@ -137,30 +137,30 @@ class ResNet(nn.Module):
 
         return output, output_online
 
-def resnet18(num_classes=100):
+def resnet18(**kwargs):
     """ return a ResNet 18 object
     """
-    return ResNet(BasicBlock, [2, 2, 2, 2], num_classes=num_classes)
+    return ResNet(BasicBlock, [2, 2, 2, 2], kwargs)
 
-def resnet34(num_classes=100):
+def resnet34(**kwargs):
     """ return a ResNet 34 object
     """
-    return ResNet(BasicBlock, [3, 4, 6, 3], num_classes=num_classes)
+    return ResNet(BasicBlock, [3, 4, 6, 3], kwargs)
 
-def resnet50(num_classes=100):
+def resnet50(**kwargs):
     """ return a ResNet 50 object
     """
-    return ResNet(BottleNeck, [3, 4, 6, 3], num_classes=num_classes)
+    return ResNet(BottleNeck, [3, 4, 6, 3], kwargs)
 
-def resnet101(num_classes=100):
+def resnet101(**kwargs):
     """ return a ResNet 101 object
     """
-    return ResNet(BottleNeck, [3, 4, 23, 3], num_classes=num_classes)
+    return ResNet(BottleNeck, [3, 4, 23, 3], kwargs)
 
-def resnet152(num_classes=100):
+def resnet152(**kwargs):
     """ return a ResNet 152 object
     """
-    return ResNet(BottleNeck, [3, 8, 36, 3], num_classes=num_classes)
+    return ResNet(BottleNeck, [3, 8, 36, 3], kwargs)
 
 
 
