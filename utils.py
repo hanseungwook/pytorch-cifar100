@@ -190,7 +190,7 @@ def get_all_tf_combs(mean, std):
         all_tf_combs += combs
     
     # adding in default transformations
-    for j in range(all_tf_combs):
+    for j in range(len(all_tf_combs)):
         all_tf_combs[j] = all_tf_combs[j] + tuple(default_tf)   
 
     return all_tf_combs
