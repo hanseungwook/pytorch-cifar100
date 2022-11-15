@@ -14,9 +14,12 @@ from torch.optim.lr_scheduler import _LRScheduler
 import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
+from itertools import combinations
+
+from dataset import AugmentedDataset
 
 
-def get_network(args):
+def get_network(args, num_classes=100):
     """ return given network
     """
 
@@ -61,19 +64,19 @@ def get_network(args):
         net = xception()
     elif args.net == 'resnet18':
         from models.resnet import resnet18
-        net = resnet18()
+        net = resnet18(num_classes=num_classes)
     elif args.net == 'resnet34':
         from models.resnet import resnet34
-        net = resnet34()
+        net = resnet34(num_classes=num_classes)
     elif args.net == 'resnet50':
         from models.resnet import resnet50
-        net = resnet50()
+        net = resnet50(num_classes=num_classes)
     elif args.net == 'resnet101':
         from models.resnet import resnet101
-        net = resnet101()
+        net = resnet101(num_classes=num_classes)
     elif args.net == 'resnet152':
         from models.resnet import resnet152
-        net = resnet152()
+        net = resnet152(num_classes=num_classes)
     elif args.net == 'preactresnet18':
         from models.preactresnet import preactresnet18
         net = preactresnet18()
@@ -162,52 +165,85 @@ def get_network(args):
 
     return net
 
+def get_all_tf_combs(mean, std):
+    """ return all possible tf combinations
+    Args:
+        mean: mean of training dataset
+        std: std of training dataset
+    Returns: all possible combinations of transformations that defines each class
+    """
 
-def get_training_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
+    flexible_tf = [
+        transforms.RandomCrop(32, padding=4),
+        transforms.RandomHorizontalFlip(),
+        transforms.RandomRotation(15)
+        ]
+    default_tf = [
+        transforms.ToTensor(),
+        transforms.Normalize(mean, std)
+        ]
+    
+    # getting all possible 1-n combinations of transformations
+    all_tf_combs = []
+    for i in range(len(flexible_tf)):
+        combs = list(combinations(flexible_tf, i))
+        all_tf_combs += combs
+    
+    # adding in default transformations
+    for j in range(all_tf_combs):
+        all_tf_combs[j] = all_tf_combs[j] + tuple(default_tf)   
+
+    return all_tf_combs
+
+    
+def get_training_dataloader(data_dir, all_tfs, batch_size=16, num_workers=2, shuffle=True):
     """ return training dataloader
     Args:
-        mean: mean of cifar100 training dataset
-        std: std of cifar100 training dataset
-        path: path to cifar100 training python dataset
+        data_dir: path to data directory
+        all_tfs: list of transformation combinations
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
         shuffle: whether to shuffle
     Returns: train_data_loader:torch dataloader object
     """
 
-    transform_train = transforms.Compose([
-        #transforms.ToPILImage(),
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(),
-        transforms.RandomRotation(15),
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std)
-    ])
+    # transform_train = transforms.Compose([
+    #     #transforms.ToPILImage(),
+    #     transforms.RandomCrop(32, padding=4),
+    #     transforms.RandomHorizontalFlip(),
+    #     transforms.RandomRotation(15),
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(mean, std)
+    # ])
+
     #cifar100_training = CIFAR100Train(path, transform=transform_train)
-    cifar100_training = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
+    # cifar100_training = torchvision.datasets.CIFAR100(root='./data', train=True, download=True, transform=transform_train)
+    cifar100_training = AugmentedDataset(data_dir, transform_list=all_tfs, train=True)
+    
     cifar100_training_loader = DataLoader(
         cifar100_training, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
 
     return cifar100_training_loader
 
-def get_test_dataloader(mean, std, batch_size=16, num_workers=2, shuffle=True):
-    """ return training dataloader
+def get_test_dataloader(data_dir, all_tfs, batch_size=16, num_workers=2, shuffle=True):
+    """ return testing dataloader
     Args:
-        mean: mean of cifar100 test dataset
-        std: std of cifar100 test dataset
-        path: path to cifar100 test python dataset
+        data_dir: path to data directory
+        all_tfs: list of transformation combinations
         batch_size: dataloader batchsize
         num_workers: dataloader num_works
         shuffle: whether to shuffle
-    Returns: cifar100_test_loader:torch dataloader object
+    Returns: test_data_loader:torch dataloader object
     """
 
-    transform_test = transforms.Compose([
-        transforms.ToTensor(),
-        transforms.Normalize(mean, std)
-    ])
-    #cifar100_test = CIFAR100Test(path, transform=transform_test)
-    cifar100_test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+    # transform_test = transforms.Compose([
+    #     transforms.ToTensor(),
+    #     transforms.Normalize(mean, std)
+    # ])
+    # #cifar100_test = CIFAR100Test(path, transform=transform_test)
+    # cifar100_test = torchvision.datasets.CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+
+    cifar100_test = AugmentedDataset(data_dir, transform_list=all_tfs, train=False)
     cifar100_test_loader = DataLoader(
         cifar100_test, shuffle=shuffle, num_workers=num_workers, batch_size=batch_size)
 
