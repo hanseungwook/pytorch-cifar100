@@ -145,10 +145,10 @@ if __name__ == '__main__':
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume training')
-    parser.add_argument('--max_num_tf_combos', type=int, default=-1, help='Maximum number of augmentation combination per class (-1 is all)')
+    parser.add_argument('--max-num-tf-combos', type=int, default=-1, help='Maximum number of augmentation combination per class (-1 is all)')
     args = parser.parse_args()
 
-    all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD)
+    all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, args.max_num_tf_combos)
 
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
