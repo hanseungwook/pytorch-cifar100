@@ -11,6 +11,7 @@ import sys
 import argparse
 import time
 from datetime import datetime
+import getpass
 
 import numpy as np
 import torch
@@ -135,6 +136,41 @@ def eval_training(epoch=0, tb=True):
 
     return correct.float() / len(cifar100_test_loader.dataset)
 
+def make_sh_and_submit(args, delay=0):
+    os.makedirs('./scripts/submit_scripts/', exist_ok=True)
+    os.makedirs('./logs/', exist_ok=True)
+
+    # cleanup
+    sys.argv.remove('--submit')
+    options = ' '.join(sys.argv[1:])
+
+    # setting experiment name from some params
+    args.exp_name = ''
+    for a in {'net', 'dataset', 'batch-size', 'lr', 'tfs', 'max-num-tf-combos'}:
+        args.exp_name += f'{a}_{getattr(args, a)}_'
+
+    print(f'Submitting the job with options: {args}')
+
+    # supercloud slurm config
+    # username = getpass.getuser()
+    preamble = (
+        f'#!/bin/sh\n#SBATCH --gres=gpu:volta:1\n#SBATCH --cpus-per-task=20\n#SBATCH '
+        f'-o ./logs/{args.exp_name}.out\n#SBATCH '
+        f'--job-name={args.exp_name}\n#SBATCH '
+        f'--open-mode=append\n\n'
+    )
+
+    with open(f'./scripts/submit_scripts/{args.exp_name}_{delay}.sh', 'w') as file:
+        file.write(preamble)
+        file.write("echo \"current time: $(date)\";\n")
+        file.write(
+            f'python {sys.argv[0]} '
+            f'{options}'
+        )
+
+    os.system(f'sbatch ./scripts/submit_scripts/{args.exp_name}_{delay}.sh')
+
+
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
@@ -146,10 +182,20 @@ if __name__ == '__main__':
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume training')
+    parser.add_argument('--knn-monitor', action='store_true', default=False, help='monitor knn test accuracy')
+    parser.add_argument('--online-clf', action='store_true', default=False, help='monitor online classifier test accuracy')
+    parser.add_argument('--tfs',  nargs='+', default=[], help='Choose from [crop, hflip, vflip, rotate, invert, blur, solarize, grayscale, colorjitter, halfswap')
     parser.add_argument('--max-num-tf-combos', type=int, default=-1, help='Maximum number of augmentation combination per class (-1 is all)')
+
+    # supercloud args
+    parser.add_argument('--submit', action='store_true', default=False, help='whether to submit it as a slurm job')
+
     args = parser.parse_args()
 
-    all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, args.max_num_tf_combos)
+    if args.submit:
+        make_sh_and_submit(args)
+
+    all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, args.tfs, args.max_num_tf_combos)
 
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
@@ -199,6 +245,7 @@ if __name__ == '__main__':
     if args.gpu:
         input_tensor = input_tensor.cuda()
     writer.add_graph(net, input_tensor)
+    writer.add_text('Transformations', str(get_all_tf_combs))
 
     #create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
