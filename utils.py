@@ -6,6 +6,7 @@ import os
 import sys
 import re
 import datetime
+import random
 
 import numpy
 
@@ -15,6 +16,7 @@ import torchvision
 import torchvision.transforms as transforms
 from torch.utils.data import DataLoader
 from itertools import combinations
+from PIL import ImageOps
 
 from dataset import AugmentedDataset
 
@@ -173,9 +175,18 @@ def get_network(args, num_classes=100, online_num_classes=100):
         net = net.cuda()
 
     return net
-    
 
-def get_all_tf_combs(mean, std, max_num_comb=-1):
+class Solarization(object):
+    def __init__(self, p):
+        self.p = p
+
+    def __call__(self, img):
+        if random.random() < self.p:
+            return ImageOps.solarize(img)
+        else:
+            return img
+
+def get_all_tf_combs(mean, std, tfs, max_num_comb=-1):
     """ return all possible tf combinations
     Args:
         mean: mean of training dataset
@@ -183,14 +194,38 @@ def get_all_tf_combs(mean, std, max_num_comb=-1):
     Returns: all possible combinations of transformations that defines each class
     """
 
-    flexible_tf = [
-        transforms.RandomCrop(32, padding=4),
-        transforms.RandomHorizontalFlip(p=1.0),
-        transforms.RandomVerticalFlip(p=1.0),
-        transforms.RandomRotation(90),
-        transforms.RandomInvert(p=1.0),
-        transforms.GaussianBlur(3, sigma=(0.1, 2.0))
-        ]
+    flexible_tf = []
+
+    if 'crop' in tfs:
+        flexible_tf.append(transforms.RandomCrop(32, padding=4))
+    if 'hflip' in tfs:
+        flexible_tf.append(transforms.RandomHorizontalFlip(p=1.0))
+    if 'vflip' in tfs:
+        flexible_tf.append(transforms.RandomVerticalFlip(p=1.0))
+    if 'rotate' in tfs:
+        flexible_tf.append(transforms.RandomRotation(90))
+    if 'invert' in tfs:
+        flexible_tf.append(transforms.RandomInvert(p=1.0))
+    if 'blur' in tfs:
+        flexible_tf.append(transforms.GaussianBlur(3, sigma=(0.1, 2.0)))
+    if 'solarize' in tfs:
+        flexible_tf.append(Solarization(1.0))
+    if 'grayscale' in tfs:
+        flexible_tf.append(transforms.Grayscale(3))
+    if 'colorjitter' in tfs:
+        flexible_tf.append(transforms.ColorJitter(brightness=0.4, contrast=0.4,
+                                            saturation=0.2, hue=0.1))
+
+    # TODO: halfswap (but this needs to work in the tensor space not PIL Image)
+    
+    # flexible_tf = [
+    #     transforms.RandomCrop(32, padding=4),
+    #     transforms.RandomHorizontalFlip(p=1.0),
+    #     transforms.RandomVerticalFlip(p=1.0),
+    #     transforms.RandomRotation(90),
+    #     transforms.RandomInvert(p=1.0),
+    #     transforms.GaussianBlur(3, sigma=(0.1, 2.0))
+    #     ]
     default_tf = [
         transforms.ToTensor(),
         transforms.Normalize(mean, std)
