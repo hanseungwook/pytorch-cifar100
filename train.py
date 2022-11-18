@@ -165,7 +165,7 @@ def make_sh_and_submit(args, delay=0):
     # setting experiment name from some params
     args.exp_name = ''
     for a in {'net', 'dataset', 'batch_size', 'lr', 'tfs', 'max_num_tf_combos'}:
-        v = getattr(args, a).replace(' ', '')
+        v = str(getattr(args, a)).replace(' ', '')
         args.exp_name += f'{a}_{v}_'
 
     print(f'Submitting the job with options: {args}')
