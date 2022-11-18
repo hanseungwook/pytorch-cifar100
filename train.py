@@ -128,6 +128,7 @@ def eval_training(epoch=0, tb=True, num_aug_classes=0):
     if args.gpu:
         print('GPU INFO.....')
         print(torch.cuda.memory_summary(), end='')
+
     print('Evaluating Network.....')
     print('Test set: Epoch: {}, Average loss: {:.4f}, Accuracy: {:.4f}, Mean per-class accuracy: {:.4f}, Average online clf loss: {:.4f}, Online clf accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
         epoch,
@@ -163,7 +164,7 @@ def make_sh_and_submit(args, delay=0):
 
     # setting experiment name from some params
     args.exp_name = ''
-    for a in {'net', 'dataset', 'batch-size', 'lr', 'tfs', 'max-num-tf-combos'}:
+    for a in {'net', 'dataset', 'batch_size', 'lr', 'tfs', 'max_num_tf_combos'}:
         args.exp_name += f'{a}_{getattr(args, a)}_'
 
     print(f'Submitting the job with options: {args}')
