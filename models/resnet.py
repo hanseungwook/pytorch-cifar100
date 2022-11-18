@@ -123,7 +123,7 @@ class ResNet(nn.Module):
 
         return nn.Sequential(*layers)
 
-    def forward(self, x):
+    def forward(self, x, extract_features=False):
         output = self.conv1(x)
         output = self.conv2_x(output)
         output = self.conv3_x(output)
@@ -131,6 +131,10 @@ class ResNet(nn.Module):
         output = self.conv5_x(output)
         output = self.avg_pool(output)
         output = output.view(output.size(0), -1)
+
+        # if extract features, return after pooling (no fc layer)
+        if extract_features:
+            return output
 
         output_online = self.online_fc(output.detach())
         output = self.fc(output)

@@ -25,7 +25,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 from conf import settings
 from utils import get_network, get_training_dataloader, get_test_dataloader, WarmUpLR, \
-    most_recent_folder, most_recent_weights, last_epoch, best_acc_weights, get_all_tf_combs, dataset_num_classes
+    most_recent_folder, most_recent_weights, last_epoch, best_acc_weights, get_all_tf_combs, dataset_num_classes, \
+    knn_monitor
 
 def train(epoch):
 
@@ -182,11 +183,14 @@ if __name__ == '__main__':
     parser.add_argument('--warm', type=int, default=1, help='warm up training phase')
     parser.add_argument('--lr', type=float, default=0.1, help='initial learning rate')
     parser.add_argument('--resume', action='store_true', default=False, help='resume training')
-    parser.add_argument('--knn-monitor', action='store_true', default=False, help='monitor knn test accuracy')
     parser.add_argument('--online-clf', action='store_true', default=False, help='monitor online classifier test accuracy')
     parser.add_argument('--tfs',  nargs='+', default=[], help='Choose from [crop, hflip, vflip, rotate, invert, blur, solarize, grayscale, colorjitter, halfswap')
     parser.add_argument('--max-num-tf-combos', type=int, default=-1, help='Maximum number of augmentation combination per class (-1 is all)')
 
+    # kNN args
+    parser.add_argument('--knn-monitor', action='store_true', default=False, help='monitor knn test accuracy')
+    parser.add_argument('--knn-int', type=int, default=1, help='interval (in # of epochs) to perform kNN monitor')
+    
     # supercloud args
     parser.add_argument('--submit', action='store_true', default=False, help='whether to submit it as a slurm job')
 
@@ -196,6 +200,7 @@ if __name__ == '__main__':
         make_sh_and_submit(args)
 
     all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, args.tfs, args.max_num_tf_combos)
+    test_tf = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, [], 0)
 
     #data preprocessing:
     cifar100_training_loader = get_training_dataloader(
@@ -206,9 +211,27 @@ if __name__ == '__main__':
         shuffle=True
     )
 
+    # train loader used as memory bank for knn monitor (only default transformations)
+    cifar100_memory_loader = get_training_dataloader(
+        args.data,
+        test_tf,
+        num_workers=4,
+        batch_size=args.batch_size,
+        shuffle=True
+    )
+
     cifar100_test_loader = get_test_dataloader(
         args.data,
         all_tf_combs,
+        num_workers=4,
+        batch_size=args.batch_size,
+        shuffle=True,
+    )
+
+    # test loader used as memory bank for knn monitor (only default transformations)
+    cifar100_default_test_loader = get_test_dataloader(
+        args.data,
+        test_tf,
         num_workers=4,
         batch_size=args.batch_size,
         shuffle=True,
@@ -245,7 +268,7 @@ if __name__ == '__main__':
     if args.gpu:
         input_tensor = input_tensor.cuda()
     writer.add_graph(net, input_tensor)
-    writer.add_text('Transformations', str(get_all_tf_combs))
+    writer.add_text('Transformations', str(all_tf_combs))
 
     #create checkpoint folder to save model
     if not os.path.exists(checkpoint_path):
@@ -283,6 +306,9 @@ if __name__ == '__main__':
 
         train(epoch)
         acc = eval_training(epoch)
+
+        if (epoch % args.knn_int) == 0:
+            knn_acc = knn_monitor(net, cifar100_memory_loader, cifar100_default_test_loader, 'cuda', k=200, writer=writer, epoch=epoch)
 
         #start to save best performance model after learning rate decay to 0.01
         if epoch > settings.MILESTONES[1] and best_acc < acc:

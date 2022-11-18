@@ -217,7 +217,7 @@ def get_all_tf_combs(mean, std, tfs, max_num_comb=-1):
                                             saturation=0.2, hue=0.1))
 
     # TODO: halfswap (but this needs to work in the tensor space not PIL Image)
-    
+
     # flexible_tf = [
     #     transforms.RandomCrop(32, padding=4),
     #     transforms.RandomHorizontalFlip(p=1.0),
@@ -393,3 +393,96 @@ def best_acc_weights(weights_folder):
 
     best_files = sorted(best_files, key=lambda w: int(re.search(regex_str, w).groups()[1]))
     return best_files[-1]
+
+##################
+def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200, t=0.1, hide_progress=False,
+                targets=None, epoch=0, writer=None):
+    """
+        kNN monitor
+    """
+    if not targets:
+        targets = memory_data_loader.dataset.targets
+    net.eval()
+    classes = len(memory_data_loader.dataset.classes)
+    total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
+    with torch.no_grad():
+        # generate feature bank
+        for data, target in memory_data_loader:
+            feature = net(data.to(device=device, non_blocking=True), extract_features=True)
+            feature_bank.append(feature)
+        # [D, N]
+        feature_bank = torch.cat(feature_bank, dim=0).t().contiguous()
+        # [N]
+        feature_labels = torch.tensor(targets, device=feature_bank.device)
+        # loop test data to predict the label by weighted knn search
+        for data, target in test_data_loader:
+            data, target = data.to(device=device, non_blocking=True), target.to(device=device, non_blocking=True)
+            feature = net(data, extract_features=True)
+
+            pred_labels = knn_predict(feature, feature_bank, feature_labels, classes, k, t)
+
+            total_num += data.size(0)
+            total_top1 += (pred_labels[:, 0] == target).float().sum().item()
+    
+    writer.add_scalar('Test/kNN Accuracy', total_top1 / total_num, epoch)
+    return total_top1 / total_num * 100
+
+
+def knn_predict(feature, feature_bank, feature_labels, classes, k, t):
+
+    feature_labels_pred = torch.empty((feature.shape[0], 1))
+    dists = compute_distances_no_loops(feature, feature_bank)
+
+    # Index over test images
+    for i in range(dists.shape[1]):
+        # Find index of k lowest values
+        x = torch.topk(dists[:,i], k, largest=False).indices
+
+        # Index the labels according to x
+        k_lowest_labels = feature_labels[x]
+
+        # y_test_pred[i] = the most frequent occuring index
+        feature_labels_pred[i] = torch.argmax(torch.bincount(k_lowest_labels))
+    
+    return feature_labels_pred
+
+def compute_distances_no_loops(x_train, x_test):
+    """
+    Inputs:
+    x_train: shape (num_train, C, H, W) tensor.
+    x_test: shape (num_test, C, H, W) tensor.
+
+    Returns:
+    dists: shape (num_train, num_test) tensor where dists[i, j] is the
+        Euclidean distance between the ith training image and the jth test
+        image.
+    """
+    # Get number of training and testing images
+    num_train = x_train.shape[0]
+    num_test = x_test.shape[0]
+
+    # Create return tensor with desired dimensions
+    dists = x_train.new_zeros(num_train, num_test) # (500, 250)
+
+    # Flattening tensors
+    train = x_train.flatten(1) # (500, 3072)
+    test = x_test.flatten(1) # (250, 3072)
+
+    # Find Euclidean distance
+    # Squaring elements
+    train_sq = torch.square(train)
+    test_sq = torch.square(test)
+
+    # Summing row elements
+    train_sum_sq = torch.sum(train_sq, 1) # (500)
+    test_sum_sq = torch.sum(test_sq, 1) # (250)
+
+    # Matrix multiplying train tensor with the transpose of test tensor
+    mul = torch.matmul(train, test.transpose(0, 1)) # (500, 250)
+
+    # Reshape enables proper broadcasting.
+    # train_sum_sq = [500, 1] shape tensor and test_sum_sq = [1, 250] shape tensor.
+    # This enables broadcasting to match desired dimensions of dists
+    dists = torch.sqrt(train_sum_sq.reshape(-1, 1) + test_sum_sq.reshape(1, -1) - 2*mul)
+
+    return dists
