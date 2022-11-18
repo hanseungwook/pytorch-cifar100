@@ -92,8 +92,8 @@ def eval_training(epoch=0, tb=True, num_aug_classes=0):
     test_loss_online = 0.0
     correct = 0.0
     correct_online = 0.0
-    correct_per_class = torch.zeros(num_aug_classes)
-    total_per_class = torch.zeros(num_aug_classes)
+    correct_per_class = torch.zeros(num_aug_classes, device='cuda')
+    total_per_class = torch.zeros(num_aug_classes, device='cuda')
 
     for (images, true_labels, aug_labels) in cifar100_test_loader:
 
