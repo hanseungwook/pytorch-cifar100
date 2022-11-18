@@ -492,7 +492,7 @@ def compute_distances_no_loops(x_train, x_test):
     test_sum_sq = torch.sum(test_sq, 1) # (250)
 
     # Matrix multiplying train tensor with the transpose of test tensor
-    mul = torch.matmul(train, test.transpose(0, 1)) # (500, 250)
+    mul = torch.matmul(train, test.permute(0, 1)) # (500, 250)
 
     # Reshape enables proper broadcasting.
     # train_sum_sq = [500, 1] shape tensor and test_sum_sq = [1, 250] shape tensor.
