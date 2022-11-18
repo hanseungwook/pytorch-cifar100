@@ -83,7 +83,7 @@ def train(epoch):
     print('epoch {} training time consumed: {:.2f}s'.format(epoch, finish - start))
 
 @torch.no_grad()
-def eval_training(epoch=0, tb=True):
+def eval_training(epoch=0, tb=True, num_aug_classes=0):
 
     start = time.time()
     net.eval()
@@ -92,6 +92,8 @@ def eval_training(epoch=0, tb=True):
     test_loss_online = 0.0
     correct = 0.0
     correct_online = 0.0
+    correct_per_class = torch.zeros(num_aug_classes)
+    total_per_class = torch.zeros(num_aug_classes)
 
     for (images, true_labels, aug_labels) in cifar100_test_loader:
 
@@ -112,16 +114,26 @@ def eval_training(epoch=0, tb=True):
         _, preds_online = outputs_online.max(1)
         correct_online += preds_online.eq(true_labels).sum()
 
+        # mean per class accuracy
+        correct_vec = (preds == aug_labels) # if each prediction is correct or not
+        ind_per_class = (aug_labels.unsqueeze(1) == torch.arange(num_aug_classes)) # indicator variable for each class
+        correct_per_class += (correct_vec.unsqueeze(1) * ind_per_class).sum(0)
+        total_per_class += ind_per_class.sum(0)
+
+    # sanity check that the sum of total per class amounts to the whole dataset
+    assert total_per_class.sum() == len(cifar100_test_loader.dataset)
+    acc_per_class = correct_per_class / total_per_class
 
     finish = time.time()
     if args.gpu:
         print('GPU INFO.....')
         print(torch.cuda.memory_summary(), end='')
     print('Evaluating Network.....')
-    print('Test set: Epoch: {}, Average loss: {:.4f}, Accuracy: {:.4f}, Average online clf loss: {:.4f}, Online clf accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
+    print('Test set: Epoch: {}, Average loss: {:.4f}, Accuracy: {:.4f}, Mean per-class accuracy: {:.4f}, Average online clf loss: {:.4f}, Online clf accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
         epoch,
         test_loss / len(cifar100_test_loader.dataset),
         correct.float() / len(cifar100_test_loader.dataset),
+        acc_per_class.mean().float(),
         test_loss_online / len(cifar100_test_loader.dataset),
         correct_online.float() / len(cifar100_test_loader.dataset),
         finish - start
@@ -132,8 +144,12 @@ def eval_training(epoch=0, tb=True):
     if tb:
         writer.add_scalar('Test/Average loss', test_loss / len(cifar100_test_loader.dataset), epoch)
         writer.add_scalar('Test/Accuracy', correct.float() / len(cifar100_test_loader.dataset), epoch)
+        writer.add_scalar('Test/Mean per class accuracy', acc_per_class.mean().float(), epoch)
         writer.add_scalar('Test/Average online clf loss', test_loss_online / len(cifar100_test_loader.dataset), epoch)
         writer.add_scalar('Test/Accuracy online clf', correct_online.float() / len(cifar100_test_loader.dataset), epoch)
+
+        for c in range(num_aug_classes):
+            writer.add_scalar(f'Test/Class {c} ({str(all_tf_combs[c])}) accuracy', acc_per_class[c].float(), epoch)
 
     return correct.float() / len(cifar100_test_loader.dataset)
 
@@ -305,7 +321,7 @@ if __name__ == '__main__':
                 continue
 
         train(epoch)
-        acc = eval_training(epoch)
+        acc = eval_training(epoch, num_aug_classes=len(all_tf_combs))
 
         if (epoch % args.knn_int) == 0:
             knn_acc = knn_monitor(net, cifar100_memory_loader, cifar100_default_test_loader, 'cuda', k=200, writer=writer, epoch=epoch)
