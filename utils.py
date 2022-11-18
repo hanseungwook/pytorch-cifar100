@@ -410,7 +410,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
     
     with torch.no_grad():
         # generate feature bank
-        for data, target in memory_data_loader:
+        for data, target, _ in memory_data_loader:
             feature = net(data.to(device=device, non_blocking=True), extract_features=True)
             feature_bank.append(feature)
         # [D, N]
@@ -418,7 +418,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
         # [N]
         feature_labels = torch.tensor(targets, device=feature_bank.device)
         # loop test data to predict the label by weighted knn search
-        for data, target in test_data_loader:
+        for data, target, _ in test_data_loader:
             data, target = data.to(device=device, non_blocking=True), target.to(device=device, non_blocking=True)
             feature = net(data, extract_features=True)
 
