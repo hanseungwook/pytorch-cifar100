@@ -7,6 +7,7 @@ import sys
 import re
 import datetime
 import random
+import time
 
 import numpy
 
@@ -400,11 +401,13 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
     """
         kNN monitor
     """
+    start = time.time()
     if not targets:
         targets = memory_data_loader.dataset.targets
     net.eval()
     classes = len(memory_data_loader.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
+    
     with torch.no_grad():
         # generate feature bank
         for data, target in memory_data_loader:
@@ -423,8 +426,19 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
 
             total_num += data.size(0)
             total_top1 += (pred_labels[:, 0] == target).float().sum().item()
-    
-    writer.add_scalar('Test/kNN Accuracy', total_top1 / total_num, epoch)
+
+    finish = time.time()
+    print('Evaluating Network.....')
+    print('Test kNN: Epoch: {}, kNN Accuracy: {:.4f}, Time consumed:{:.2f}s'.format(
+        epoch,
+        total_top1 / total_num,
+        finish - start
+    ))
+    print()
+
+    if writer:
+        writer.add_scalar('Test/kNN Accuracy', total_top1 / total_num, epoch)
+
     return total_top1 / total_num * 100
 
 
