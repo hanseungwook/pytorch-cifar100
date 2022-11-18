@@ -425,7 +425,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
             pred_labels = knn_predict(feature, feature_bank, feature_labels, classes, k, t)
 
             total_num += data.size(0)
-            total_top1 += (pred_labels[:, 0] == target).float().sum().item()
+            total_top1 += (pred_labels[:, 0].cuda() == target).float().sum().item()
 
     finish = time.time()
     print('Evaluating Network.....')
