@@ -445,7 +445,7 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
 def knn_predict(feature, feature_bank, feature_labels, classes, k, t):
 
     feature_labels_pred = torch.empty((feature.shape[0], 1))
-    dists = compute_distances_no_loops(feature, feature_bank)
+    dists = compute_distances_no_loops(feature_bank, feature)
 
     # Index over test images
     for i in range(dists.shape[1]):
@@ -492,7 +492,7 @@ def compute_distances_no_loops(x_train, x_test):
     test_sum_sq = torch.sum(test_sq, 1) # (250)
 
     # Matrix multiplying train tensor with the transpose of test tensor
-    mul = torch.matmul(train, test.permute(0, 1)) # (500, 250)
+    mul = torch.matmul(train, test.permute(1, 0)) # (500, 250)
 
     # Reshape enables proper broadcasting.
     # train_sum_sq = [500, 1] shape tensor and test_sum_sq = [1, 250] shape tensor.
