@@ -116,7 +116,7 @@ def eval_training(epoch=0, tb=True, num_aug_classes=0):
 
         # mean per class accuracy
         correct_vec = (preds == aug_labels) # if each prediction is correct or not
-        ind_per_class = (aug_labels.unsqueeze(1) == torch.arange(num_aug_classes)) # indicator variable for each class
+        ind_per_class = (aug_labels.unsqueeze(1) == torch.arange(num_aug_classes, device='cuda')) # indicator variable for each class
         correct_per_class += (correct_vec.unsqueeze(1) * ind_per_class).sum(0)
         total_per_class += ind_per_class.sum(0)
 
