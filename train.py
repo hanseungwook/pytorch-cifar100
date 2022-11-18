@@ -3,7 +3,7 @@
 
 """ train network using pytorch
 
-author baiyu
+author seungwook, adopted from baiyu
 """
 
 import os
@@ -215,6 +215,7 @@ if __name__ == '__main__':
 
     if args.submit:
         make_sh_and_submit(args)
+        sys.exit(0)
 
     all_tf_combs = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, args.tfs, args.max_num_tf_combos)
     test_tf = get_all_tf_combs(settings.CIFAR100_TRAIN_MEAN, settings.CIFAR100_TRAIN_STD, [], 0)
