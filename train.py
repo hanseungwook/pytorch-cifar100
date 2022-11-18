@@ -239,7 +239,7 @@ if __name__ == '__main__':
         test_tf,
         num_workers=4,
         batch_size=args.batch_size,
-        shuffle=True
+        shuffle=False
     )
 
     cifar100_test_loader = get_test_dataloader(
@@ -256,7 +256,7 @@ if __name__ == '__main__':
         test_tf,
         num_workers=4,
         batch_size=args.batch_size,
-        shuffle=True,
+        shuffle=False,
     )
 
     print(f'Initializing {args.net} with {len(all_tf_combs)} number of augmented classes')
