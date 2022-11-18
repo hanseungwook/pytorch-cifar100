@@ -403,9 +403,9 @@ def knn_monitor(net, memory_data_loader, test_data_loader, device='cuda', k=200,
     """
     start = time.time()
     if not targets:
-        targets = memory_data_loader.dataset.targets
+        targets = memory_data_loader.dataset.dataset.targets
     net.eval()
-    classes = len(memory_data_loader.dataset.classes)
+    classes = len(memory_data_loader.dataset.dataset.classes)
     total_top1, total_top5, total_num, feature_bank = 0.0, 0.0, 0, []
     
     with torch.no_grad():

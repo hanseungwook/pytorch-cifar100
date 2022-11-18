@@ -116,7 +116,7 @@ def eval_training(epoch=0, tb=True, num_aug_classes=0):
 
         # mean per class accuracy
         correct_vec = (preds == aug_labels) # if each prediction is correct or not
-        ind_per_class = (aug_labels.unsqueeze(1) == torch.arange(num_aug_classes).cuda()) # indicator variable for each class
+        ind_per_class = (aug_labels.unsqueeze(1) == torch.arange(num_aug_classes, device='cuda')) # indicator variable for each class
         correct_per_class += (correct_vec.unsqueeze(1) * ind_per_class).sum(0)
         total_per_class += ind_per_class.sum(0)
 
@@ -329,7 +329,7 @@ if __name__ == '__main__':
         train(epoch)
         acc = eval_training(epoch, num_aug_classes=len(all_tf_combs))
 
-        if (epoch % args.knn_int) == 0:
+        if (epoch % args.knn_int) == 1:
             knn_acc = knn_monitor(net, cifar100_memory_loader, cifar100_default_test_loader, 'cuda', k=200, writer=writer, epoch=epoch)
 
         #start to save best performance model after learning rate decay to 0.01
